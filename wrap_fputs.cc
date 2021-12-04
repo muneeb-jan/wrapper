@@ -64,10 +64,9 @@ static bool check_read_str(const char *s) {
     
     if (setjmp(jumpBuffer)==0)
     {
-        int i=0;
         while(*s != '\0')
         {
-            i++; ++s;
+            ++s;
         }
         if (*s !='\0')
             raise(11);
@@ -84,7 +83,7 @@ static bool check_read_str(const char *s) {
 
 // check read-/writeability of a file handle (using setjump/longjmp/signal approach)
 static bool check_readwrite_FILE(FILE *f) {
-    
+
 
     char *buffer;
     if (setjmp(jumpBuffer) == 0)
@@ -94,11 +93,12 @@ static bool check_readwrite_FILE(FILE *f) {
         size = ftell(f);
         fseek(f,0, SEEK_SET);
         buffer = (char*) malloc(sizeof(char)*size);
-        long rsize = fread(buffer, 1, size, f);
+    
+        size_t rsize = fread(buffer, 1, size, f);
         if(rsize != size)
             raise(11);
         
-        long wsize = fwrite(buffer, 1, size, f);
+        size_t wsize = fwrite(buffer, 1, size, f);
         if(wsize != size)
             raise(11);
         
