@@ -11,6 +11,7 @@
 // freopen
 // fclose
 
+
 // check for readability of a string (using setjump/longjmp/signal approach)
 static bool check_read_str(const char *s) {
 }
@@ -20,3 +21,4 @@ static bool check_readwrite_FILE(FILE *f) {
 }
 
 // WRAP fputs to behave robust
+// Test commit 1
