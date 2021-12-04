@@ -66,9 +66,9 @@ static bool check_read_str(const char *s) {
     {
         int i=0;
         char *c;
-        for(c = (char*) s;c != '\0'; ++c)
+        for(c = (char*) s; *c != '\0'; ++c)
             i++;
-        if (c!='\0')
+        if (*c !='\0')
             raise(11);
     }
     else
