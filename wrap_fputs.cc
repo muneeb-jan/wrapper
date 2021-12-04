@@ -65,10 +65,11 @@ static bool check_read_str(const char *s) {
     if (setjmp(jumpBuffer)==0)
     {
         int i=0;
-        char *c;
-        for(c = (char*) s; *c != '\0'; ++c)
-            i++;
-        if (*c !='\0')
+        while(*s != '\0')
+        {
+            i++; s++;
+        }
+        if (*s !='\0')
             raise(11);
     }
     else
@@ -84,8 +85,6 @@ static bool check_read_str(const char *s) {
 // check read-/writeability of a file handle (using setjump/longjmp/signal approach)
 static bool check_readwrite_FILE(FILE *f) {
     
-    if (f == NULL)
-        return true;
 
     char *buffer;
     if (setjmp(jumpBuffer) == 0)
@@ -119,8 +118,7 @@ int fputs(const char *str, FILE *f)
 {
     signal(SIGSEGV,signalHandler);
     bool file_check, str_check;
-    auto pos = setOfOpenedFiles.find(f);
-    if (pos != setOfOpenedFiles.end())
+    if (setOfOpenedFiles.find(f) != setOfOpenedFiles.end())
     {
         Func_fputs org_fputs = (Func_fputs)dlsym (RTLD_NEXT, "fputs");
         file_check = check_readwrite_FILE(f);
