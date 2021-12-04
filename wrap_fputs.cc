@@ -98,8 +98,8 @@ static bool check_readwrite_FILE(FILE *f) {
         if(rsize != size)
             raise(11);
         
-        rsize = fwrite(buffer, 1, size, f);
-        if(rsize != size)
+        long wsize = fwrite(buffer, 1, size, f);
+        if(wsize != size)
             raise(11);
         
     }
