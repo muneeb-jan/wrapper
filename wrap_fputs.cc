@@ -50,7 +50,7 @@ FILE* freopen(const char *path, const char *mode, FILE *f)
 
 int fclose(FILE* f)
 {
-    Func_fclose org_fclose = (Func_fclose)dlsym (RTLD_NEXT, "fclsoe");
+    Func_fclose org_fclose = (Func_fclose)dlsym (RTLD_NEXT, "fclose");
     setOfOpenedFiles.erase(f);
     return org_fclose(f);
 }
