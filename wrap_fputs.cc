@@ -84,6 +84,9 @@ static bool check_read_str(const char *s) {
 // check read-/writeability of a file handle (using setjump/longjmp/signal approach)
 static bool check_readwrite_FILE(FILE *f) {
     
+    if (f == NULL)
+        return true;
+
     char *buffer;
     if (setjmp(jumpBuffer) == 0)
     {
