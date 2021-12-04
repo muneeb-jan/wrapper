@@ -118,8 +118,10 @@ int fputs(const char *str, FILE *f)
     if (setOfOpenedFiles.find(f) != setOfOpenedFiles.end())
     {   
         Func_fputs org_fputs = (Func_fputs)dlsym (RTLD_NEXT, "fputs");
-        file_check = check_readwrite_FILE(f);
         str_check = check_read_str(str);
+        if (str_check)
+            file_check = check_readwrite_FILE(f);
+        
 
         if (file_check && str_check)
         {
