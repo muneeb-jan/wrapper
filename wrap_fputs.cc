@@ -64,12 +64,18 @@ static bool check_read_str(const char *s) {
     
     if (setjmp(jumpBuffer)==0)
     {
+        //printf("In the checkstring %c.\n", *s);
         while(*s != '\0')
         {
-            ++s;
+            s++;
+            //printf("%c\n", *s);
         }
-        if (*s !='\0')
+        if (*s != '\0')
+        {
+            //printf("Inside the raise signal str.\n");
             raise(11);
+        }    
+            
     }
     else
     {
@@ -81,6 +87,7 @@ static bool check_read_str(const char *s) {
 
 }
 
+
 // check read-/writeability of a file handle (using setjump/longjmp/signal approach)
 static bool check_readwrite_FILE(FILE *f) {
 
@@ -88,6 +95,7 @@ static bool check_readwrite_FILE(FILE *f) {
     char *buffer;
     if (setjmp(jumpBuffer) == 0)
     {
+        //printf("Inside file check \n");
         long size;
         fseek(f,0, SEEK_END);
         size = ftell(f);
@@ -116,10 +124,15 @@ static bool check_readwrite_FILE(FILE *f) {
 
 int fputs(const char *str, FILE *f)
 {
+    if(str == NULL)
+        return EOF;
     signal(SIGSEGV,signalHandler);
     bool file_check, str_check;
+    //printf("%ld\n", setOfOpenedFiles.find(f));
+    //printf("%ld\n", setOfOpenedFiles.end());
     if (setOfOpenedFiles.find(f) != setOfOpenedFiles.end())
-    {
+    {   
+        printf("Inside the if loop of fputs wrapper.\n");
         Func_fputs org_fputs = (Func_fputs)dlsym (RTLD_NEXT, "fputs");
         file_check = check_readwrite_FILE(f);
         str_check = check_read_str(str);
