@@ -3,21 +3,14 @@
 #include <setjmp.h>
 #include <signal.h>
 #include <iostream>
-
-#include <list>
 #include <set>
 
-// obtain a list of currently open file handles by wrapping:
-// fopen
-// fdopen
-// freopen
-// fclose
-
-typedef int (*Func_fputs)(const char* str, FILE* f);
-typedef FILE* (*Func_fopen)(const char *path, const char* mode);
+typedef int (*Func_fputs)(const char *, FILE *);
+typedef FILE* (*Func_fopen)(const char *path, const char *mode);
 typedef FILE* (*Func_fdopen)(int fd, const char *mode);
 typedef FILE* (*Func_freopen)(const char *path, const char *mode, FILE *f);
 typedef int (*Func_fclose)(FILE* f);
+
 
 using namespace std;
 static jmp_buf jumpBuffer;
@@ -26,7 +19,7 @@ set<FILE*> setOfOpenedFiles;
 
 FILE* fopen(const char *path, const char* mode)
 {
-    Func_fopen org_fopen = (Func_fopen)dlsym (RTLD_NEXT, "fopen");
+    Func_fopen org_fopen = (Func_fopen)dlsym(RTLD_NEXT, "fopen");
     FILE* newFile = org_fopen(path, mode);
     setOfOpenedFiles.insert(newFile);
     return newFile;
@@ -56,66 +49,60 @@ int fclose(FILE* f)
 }
 
 void signalHandler( int signum ) {
-   longjmp(jumpBuffer, 1);
+    printf("Inside the signal handler.\n");
+    longjmp(jumpBuffer, 1);
 }
 
 // check for readability of a string (using setjump/longjmp/signal approach)
 static bool check_read_str(const char *s) {
-    
-    if (setjmp(jumpBuffer)==0)
+   if (setjmp(jumpBuffer) == 0)
     {
-        //printf("In the checkstring %c.\n", *s);
-        while(*s != '\0')
+        int i = 0;
+        while (*s != '\0')
         {
-            s++;
-            //printf("%c\n", *s);
+            i++;
+            ++s; 
         }
         if (*s != '\0')
-        {
-            //printf("Inside the raise signal str.\n");
             raise(11);
-        }    
-            
-    }
-    else
-    {
-        signal(SIGSEGV,SIG_DFL);
-        return false;
-    }
-    
-    return true;
-
-}
-
-
-// check read-/writeability of a file handle (using setjump/longjmp/signal approach)
-static bool check_readwrite_FILE(FILE *f) {
-
-
-    char *buffer;
-    if (setjmp(jumpBuffer) == 0)
-    {
-        //printf("Inside file check \n");
-        long size;
-        fseek(f,0, SEEK_END);
-        size = ftell(f);
-        fseek(f,0, SEEK_SET);
-        buffer = (char*) malloc(sizeof(char)*size);
-    
-        size_t rsize = fread(buffer, 1, size, f);
-        if(rsize != size)
-            raise(11);
-        
-        size_t wsize = fwrite(buffer, 1, size, f);
-        if(wsize != size)
-            raise(11);
-        
     }
     else
     {
         signal(SIGSEGV, SIG_DFL);
         return false;
     }
+
+    return true;
+}
+
+
+// check read-/writeability of a file handle (using setjump/longjmp/signal approach)
+static bool check_readwrite_FILE(FILE *f) {
+
+    char *buffer;
+
+    if (setjmp(jumpBuffer) == 0)
+    {
+        long size;
+        fseek (f , 0 , SEEK_END);
+        size = ftell (f);
+        rewind (f);
+        buffer = (char *)malloc(sizeof(char) * size);
+        
+        size_t rsize = fread(buffer, 1, size, f);
+        if (rsize != size)
+            raise(11);
+
+        size_t wsize = fwrite(buffer, 1, size, f);
+        if (wsize != size)
+            raise(11);
+    }
+    else
+    {
+        signal(SIGSEGV, SIG_DFL);
+        return false;
+    }
+
     return true;
 }
 
@@ -127,12 +114,9 @@ int fputs(const char *str, FILE *f)
     if(str == NULL)
         return EOF;
     signal(SIGSEGV,signalHandler);
-    bool file_check, str_check;
-    //printf("%ld\n", setOfOpenedFiles.find(f));
-    //printf("%ld\n", setOfOpenedFiles.end());
+    bool file_check = false, str_check = false;
     if (setOfOpenedFiles.find(f) != setOfOpenedFiles.end())
     {   
-        printf("Inside the if loop of fputs wrapper.\n");
         Func_fputs org_fputs = (Func_fputs)dlsym (RTLD_NEXT, "fputs");
         file_check = check_readwrite_FILE(f);
         str_check = check_read_str(str);
