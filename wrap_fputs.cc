@@ -20,6 +20,7 @@ typedef FILE* (*Func_freopen)(const char *path, const char *mode, FILE *f);
 typedef int (*Func_fclose)(FILE* f);
 
 using namespace std;
+static jmp_buf jumpBuffer;
 
 set<FILE*> setOfOpenedFiles;
 
@@ -55,24 +56,57 @@ int fclose(FILE* f)
 }
 
 void signalHandler( int signum ) {
-   printf("Interrupt signal (%d) received.\n", signum);
-
-   // cleanup and close up stuff here  
-   // terminate program  
-
-   exit(signum);
+   longjmp(jumpBuffer, 1);
 }
 
 // check for readability of a string (using setjump/longjmp/signal approach)
 static bool check_read_str(const char *s) {
-    char *c;
-    for (c = (char *)s; s; c++);
-    return c == "\0";
+    
+    if (setjmp(jumpBuffer)==0)
+    {
+        int i=0;
+        char *c;
+        for(c = (char*) s;c != '\0'; ++c)
+            i++;
+        if (c!='\0')
+            raise(11);
+    }
+    else
+    {
+        signal(SIGSEGV,SIG_DFL);
+        return false;
+    }
+    
+    return true;
 
 }
 
 // check read-/writeability of a file handle (using setjump/longjmp/signal approach)
 static bool check_readwrite_FILE(FILE *f) {
+    
+    char *buffer;
+    if (setjmp(jumpBuffer) == 0)
+    {
+        long size;
+        fseek(f,0, SEEK_END);
+        size = ftell(f);
+        fseek(f,0, SEEK_SET);
+        buffer = (char*) malloc(sizeof(char)*size);
+        long rsize = fread(buffer, 1, size, f);
+        if(rsize != size)
+            raise(11);
+        
+        rsize = fwrite(buffer, 1, size, f);
+        if(rsize != size)
+            raise(11);
+        
+    }
+    else
+    {
+        signal(SIGSEGV, SIG_DFL);
+        return false;
+    }
+    return true;
 }
 
 // WRAP fputs to behave robust
